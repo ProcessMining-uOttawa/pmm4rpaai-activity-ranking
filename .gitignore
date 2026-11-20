@@ -1,6 +1,15 @@
 # Event logs and exports: keep real process data out of the repository
 *.csv
 *.xes
+!static/sample_log.csv
+!tests/fixtures/*.csv
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
 
 # OS and editor files
 Thumbs.db

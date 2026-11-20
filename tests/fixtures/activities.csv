@@ -1,0 +1,11 @@
+activity,total_duration,total_cost,automation_rate
+Receive and log application,150,800,1.00
+Validate documents,600,3500,1.00
+Credit check,400,1200,1.00
+Risk assessment,900,6000,1.00
+Manager approval,1200,8000,1.00
+Send welcome email,100,200,1.00
+Account setup in system,500,2500,1.00
+Compliance review,2400,9000,1.00
+Notify customer of outcome,100,200,1.00
+Archive and file records,200,600,1.00

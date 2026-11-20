@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMM4RPAAI Activity Ranking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+  <h1>PMM4RPAAI Activity Ranking</h1>
+  <p class="lede">Load your process data, set one or two goals, and see which activities would contribute most to them if automated. The shortlist is the set of top-ranked activities that reaches your targets. All times are in minutes.</p>
+
+  <section class="panel" aria-labelledby="h-data">
+    <h2 id="h-data"><span class="step">1</span>Process data</h2>
+    <p class="sub">Choose how to provide the data. Files are processed by this app on your own computer.</p>
+    <div class="pills" role="group" aria-label="Data source">
+      <label><input type="radio" name="source" value="eventlog" checked><span>Event log</span></label>
+      <label><input type="radio" name="source" value="activities"><span>Activity table</span></label>
+      <label><input type="radio" name="source" value="manual"><span>Enter by hand</span></label>
+    </div>
+
+    <div id="src-eventlog" class="source">
+      <p class="sub">A CSV file with one row per activity execution: a case ID, an activity name, and a start and end time (or a duration).</p>
+      <div class="row">
+        <label class="btn">Load CSV event log<input type="file" id="log-file" accept=".csv,.txt"></label>
+        <button id="sample-btn" type="button">Use sample log</button>
+        <span id="log-info" class="note inline"></span>
+      </div>
+      <div id="mapping" class="hidden">
+        <div class="fields">
+          <label class="f">Case ID<select id="m-case_id" data-field="case_id"></select></label>
+          <label class="f">Activity<select id="m-activity" data-field="activity"></select></label>
+          <label class="f">Start time<select id="m-start_time" data-field="start_time" data-optional></select></label>
+          <label class="f">End time<select id="m-end_time" data-field="end_time" data-optional></select></label>
+          <label class="f">Duration in minutes (if no end time)<select id="m-duration" data-field="duration" data-optional></select></label>
+          <label class="f">Cost column (optional)<select id="m-cost" data-field="cost" data-optional></select></label>
+          <label class="f">Hourly cost rate column (optional)<select id="m-rate" data-field="rate" data-optional></select></label>
+          <label class="f">Default hourly cost rate<input type="number" id="default-rate" min="0" step="1" value="30"></label>
+        </div>
+        <p class="note">Cost per execution is taken from the cost column where it has a value. Otherwise it is processing time × the hourly rate, using the default rate when a row has no rate.</p>
+      </div>
+    </div>
+
+    <div id="src-activities" class="source hidden">
+      <p class="sub">A CSV file with one row per activity and its totals: activity, total_duration, total_cost, rework_duration.</p>
+      <div class="row">
+        <label class="f compact">Durations in the file are in
+          <select id="duration-unit">
+            <option value="hours" selected>hours</option>
+            <option value="minutes">minutes</option>
+            <option value="seconds">seconds</option>
+          </select>
+        </label>
+        <label class="btn">Load CSV activity table<input type="file" id="table-file" accept=".csv,.txt"></label>
+        <span id="table-info" class="note inline"></span>
+      </div>
+    </div>
+
+    <div id="src-manual" class="source hidden">
+      <p class="sub">Type the total processing time of the process and the time of each activity, in minutes. Executions (how many times the activity was performed) is optional, but needed for bot execution time and number of bots.</p>
+      <label class="f compact">Total processing time of the process (minutes)
+        <input type="number" id="total-time" min="0" step="any">
+      </label>
+      <div class="scroll">
+        <table id="manual-table" class="entry">
+          <thead><tr><th class="l">Activity</th><th>Time (min)</th><th>Executions</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="row">
+        <button id="add-row-btn" type="button">Add activity</button>
+        <button id="manual-btn" type="button" class="primary">Use these times</button>
+      </div>
+    </div>
+
+    <div id="upload-error" class="error hidden" role="alert"></div>
+    <div id="upload-warnings" class="warnings hidden"></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-goals">
+    <h2 id="h-goals"><span class="step">2</span>Goals</h2>
+    <p class="sub">Choose one or two things you want to reduce, and set a target for each.</p>
+    <div class="pills" role="group" aria-label="Goals" id="goal-pills">
+      <label data-goal="reduce_total_duration"><input type="checkbox" name="goal" value="reduce_total_duration" checked><span>Processing time</span></label>
+      <label data-goal="reduce_total_cost"><input type="checkbox" name="goal" value="reduce_total_cost"><span>Cost</span></label>
+      <label data-goal="reduce_rework_duration"><input type="checkbox" name="goal" value="reduce_rework_duration"><span>Rework time</span></label>
+    </div>
+    <div class="fields narrow">
+      <label class="f" id="tw-reduce_total_duration">Processing time target (%)<input type="number" id="tgt-reduce_total_duration" min="1" max="100" step="1" value="10"></label>
+      <label class="f hidden" id="tw-reduce_total_cost">Cost target (%)<input type="number" id="tgt-reduce_total_cost" min="1" max="100" step="1" value="10"></label>
+      <label class="f hidden" id="tw-reduce_rework_duration">Rework time target (%)<input type="number" id="tgt-reduce_rework_duration" min="1" max="100" step="1" value="10"></label>
+    </div>
+    <div id="rank-error" class="error hidden" role="alert"></div>
+  </section>
+
+  <section class="panel hidden" aria-labelledby="h-results" id="results-section">
+    <h2 id="h-results"><span class="step">3</span>Ranked activities</h2>
+    <p class="sub">Each activity is assumed to be 100% automated. Its share of the total is therefore the reduction it would contribute, and the cumulative column shows the running total against your target.</p>
+    <div class="kpis" id="kpis"></div>
+    <div id="status"></div>
+    <div class="scroll">
+      <table id="rank-table">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+    <div class="row top-gap"><a id="export-link" class="btn primary" href="#">Export ranking (CSV)</a></div>
+    <p class="note" id="combo-note"></p>
+    <p class="note" id="total-note"></p>
+    <p class="note">Activities that contribute nothing to the selected goals are left out of the ranking. Those with zero recorded time are treated as already automated.</p>
+    <details id="metrics-details">
+      <summary>All activity metrics</summary>
+      <div class="scroll">
+        <table id="activities-table">
+          <thead></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <section class="panel hidden" aria-labelledby="h-assess" id="assess-section">
+    <h2 id="h-assess"><span class="step">4</span>Assess the shortlisted activities</h2>
+    <p class="sub">Split each shortlisted activity into its tasks and give every task a value from 0 to 100
+        on each criterion: how much it stands in the way of automation (0 = no obstacle, 100 = complete obstacle).
+        Uncertain values take three estimates: optimistic, likely and pessimistic. Each result is calculated
+        for all three, giving the Low / Mid / High levels the simulation needs.</p>
+
+    <h3>Criterion weights</h3>
+    <p class="hint">The same six values drive three outputs. Each output has its own weights (in %, each
+        column summing to 100), because what blocks automation is not always what makes a bot fail or run slowly.</p>
+    <code class="formula">weighted barrier W = Σ weight × value
+automation feasibility = max(0, 100 − W_feasibility)
+bot failure rate = lowest + (highest − lowest) × W_failure ÷ 100
+bot time = task time × (lowest + (highest − lowest) × W_bot time ÷ 100)</code>
+    <div class="scroll">
+      <table id="weights-table">
+        <thead><tr><th class="l">Criterion</th><th class="l">0 means</th><th class="l">100 means</th><th>Feasibility weight (%)</th>
+            <th>Failure rate weight (%)</th><th>Bot time weight (%)</th></tr></thead>
+        <tbody></tbody>
+        <tfoot><tr><td colspan="3">Total</td><td id="weight-total-feasibility"></td>
+            <td id="weight-total-failure"></td><td id="weight-total-bot_time"></td></tr></tfoot>
+      </table>
+    </div>
+
+    <h3>Tasks</h3>
+    <div id="task-forms"></div>
+
+    <h3>Bot assumptions</h3>
+    <p class="hint">The failure rate and bot time ranges come from published measurements (source under
+        each group). Change them if you have better data for your process.</p>
+    <div id="params-form" class="params-grid"></div>
+
+    <button id="assess-btn" type="button" class="primary">Calculate</button>
+    <div id="assess-error" class="error hidden" role="alert"></div>
+
+    <div id="assess-results" class="hidden">
+      <h3>Assessment</h3>
+      <div id="assess-output"></div>
+      <a id="sim-export-link" class="btn primary" href="#">Download simulation inputs (JSON)</a>
+    </div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="assessment.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
