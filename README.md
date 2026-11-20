@@ -1,4 +1,4 @@
-# Activity finder
+# PMM4RPAAI Activity Ranking
 
 Load a process event log, set one or two improvement goals, and see which activities
 would contribute most to those goals if they were automated. The shortlist is the set
