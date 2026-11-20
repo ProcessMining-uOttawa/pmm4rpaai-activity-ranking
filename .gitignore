@@ -1,0 +1,10 @@
+# Event logs and exports: keep real process data out of the repository
+*.csv
+*.xes
+
+# OS and editor files
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.claude/
