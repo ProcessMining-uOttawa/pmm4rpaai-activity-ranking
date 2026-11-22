@@ -1,6 +1,6 @@
 # PMM4RPAAI Activity Ranking
 
-Load your process data, set one or two improvement goals, and see which activities
+Load your process data, set up to three improvement goals, and see which activities
 would contribute most to those goals if they were automated. The shortlist is the set
 of top-ranked activities that reaches your targets. Shortlisted activities can then be
 assessed task by task with a questionnaire.
@@ -33,8 +33,8 @@ The page loads its font from Google Fonts, so it looks slightly different offlin
      `activity_data.csv`. Pick the unit its durations are in.
    - **Enter by hand**: the total processing time of the process and each activity's
      time, in minutes.
-2. **Goals.** Choose one or two of processing time, cost and rework time, and set a
-   target reduction (%) for each.
+2. **Goals.** Choose one, two or all three of processing time, cost and rework time, and set a
+   target reduction (%) for each, then click "Rank activities".
 3. **Ranked activities.** Activities are ranked and the top ones are shortlisted until
    every target is reached. "Export ranking (CSV)" saves the table.
 4. **Assess the shortlisted activities.** Split each shortlisted activity into tasks
@@ -57,9 +57,9 @@ All times are in minutes.
   equals its share of that goal's total.
 - **One goal:** activities are ranked by their share and shortlisted from the top until
   the cumulative share reaches the target.
-- **Two goals:** both count equally. Activities are ranked by a combined score, the
-  average of their two shares, and shortlisted from the top until both targets are
-  reached. There is one shortlist for both goals.
+- **Two or three goals:** all count equally. Activities are ranked by a combined
+  score, the average of their shares over the goals, and shortlisted from the top until
+  every target is reached. There is one shortlist for all goals.
 - Activities that contribute nothing to the selected goals are left out of the ranking;
   those with zero recorded time are treated as already automated.
 - With data entered by hand, shares are taken from the total processing time you

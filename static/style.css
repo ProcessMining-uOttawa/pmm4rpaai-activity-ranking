@@ -50,6 +50,7 @@ button, .btn {
     text-decoration: none; position: relative; display: inline-flex; align-items: center;
 }
 button:hover, .btn:hover { border-color: var(--muted); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
 button.primary, .btn.primary { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible, label.btn:focus-within, summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .btn input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
@@ -101,7 +102,7 @@ tfoot td { font-weight: 700; }
 td input { width: 76px; text-align: center; padding: 4px 6px; }
 .tag { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 0.76rem; font-weight: 700; background: var(--accent); color: var(--surface); }
 .tag.grey { background: var(--line); color: var(--muted); }
-.bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 3px; min-width: 90px; }
+.bar { height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; margin-top: 3px; min-width: 56px; }
 .bar > span { display: block; height: 100%; background: var(--accent); }
 tr.short .bar { background: var(--surface); }
 

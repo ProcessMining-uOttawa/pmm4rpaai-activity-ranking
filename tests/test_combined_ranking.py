@@ -84,6 +84,24 @@ def test_single_goal_matches_the_single_goal_algorithm(column, key, target_pct):
     assert combined["goals"][key]["achieved_reduction"] == pytest.approx(single["achieved_reduction"])
 
 
+def test_three_goals_rank_by_mean_of_three_shares():
+    # Rework time: A 0, B 5, C 15 (total 20) -> shares 0, 0.25, 0.75.
+    # Scores: A (0.50 + 0.10 + 0.00) / 3 = 0.20
+    #         B (0.30 + 0.60 + 0.25) / 3 = 0.3833
+    #         C (0.20 + 0.30 + 0.75) / 3 = 0.4167
+    activities = [{**a, "rework_duration": r} for a, r in zip(ACTIVITIES, (0.0, 5.0, 15.0))]
+    result = rank_combined(activities, _goals(**{TIME: 40, COST: 40, REWORK: 40}))
+
+    assert [a["activity"] for a in result["ranked"]] == ["C", "B", "A"]
+    assert [a["score"] for a in result["ranked"]] == pytest.approx([1.25 / 3, 1.15 / 3, 0.60 / 3])
+    # C alone: time 20%, cost 30%, rework 75%. Adding B: time 50%, cost 90%, rework 100%.
+    assert result["shortlist"] == ["C", "B"]
+    assert result["goals"][TIME]["achieved_share"] == pytest.approx(0.50)
+    assert result["goals"][COST]["achieved_share"] == pytest.approx(0.90)
+    assert result["goals"][REWORK]["achieved_share"] == pytest.approx(1.00)
+    assert all(g["goal_met"] for g in result["goals"].values())
+
+
 def test_activities_with_no_contribution_are_left_out_of_the_ranking():
     activities = ACTIVITIES + [
         {"activity": "Receive", "total_duration": 0.0, "total_cost": 0.0, "rework_duration": 0.0, "automation_rate": 1.0}

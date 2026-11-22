@@ -6,7 +6,6 @@ const GOALS = [
     { key: "reduce_total_cost", column: "total_cost", title: "Cost", name: "cost", unit: "" },
     { key: "reduce_rework_duration", column: "rework_duration", title: "Rework time", name: "rework time", unit: " min" },
 ];
-const MAX_GOALS = 2;
 const MANUAL_ROWS = 3;
 const MAP_FIELDS = ["case_id", "activity", "start_time", "end_time", "duration", "cost", "rate"];
 
@@ -60,6 +59,17 @@ function clearData() {
     activities = [];
     hide("results-section");
     hide("assess-section");
+    $("rank-btn").disabled = true;
+    $("rank-hint").textContent = "Load process data first.";
+}
+
+// Goals or targets changed: the ranking on screen (if any) no longer matches them.
+function markStale() {
+    if (!uploadId) return;
+    hide("rank-error");
+    $("rank-hint").textContent = $("results-section").classList.contains("hidden")
+        ? "Click Rank activities to see the ranking."
+        : "Goals changed. Click Rank activities to update the ranking.";
 }
 
 // ---------- Step 1: data source ----------
@@ -205,7 +215,12 @@ async function useActivities(data) {
         $("upload-warnings").innerHTML = "<ul>" + data.warnings.map((w) => `<li>${escapeHtml(w)}</li>`).join("") + "</ul>";
         show("upload-warnings");
     }
-    await runRanking();
+    // New data: any ranking on screen belongs to the previous data. Wait for the button.
+    hide("results-section");
+    hide("assess-section");
+    hide("rank-error");
+    $("rank-btn").disabled = false;
+    $("rank-hint").textContent = `${activities.length} activit${activities.length === 1 ? "y" : "ies"} loaded. Click Rank activities to see the ranking.`;
 }
 
 // ---------- Step 2: goals ----------
@@ -230,15 +245,12 @@ function setAvailableGoals(keys) {
 function handleGoalToggle(event) {
     const checkbox = event.target;
     const selected = selectedGoalKeys();
-    if (selected.length > MAX_GOALS) {
-        checkbox.checked = false;
-        toast("Choose up to two goals at once.");
-    } else if (selected.length === 0) {
+    if (selected.length === 0) {
         checkbox.checked = true;
         toast("Keep at least one goal selected.");
     }
     syncTargetFields();
-    runRanking();
+    markStale();
 }
 
 // ---------- Step 3: ranking ----------
@@ -271,6 +283,7 @@ async function runRanking() {
     }
 
     renderRanking(data);
+    $("rank-hint").textContent = "";
     $("export-link").href = `/api/export/${uploadId}`;
     show("results-section");
 
@@ -318,7 +331,7 @@ function renderStatus(data, goals) {
 
 function renderRanking(data) {
     const goals = GOALS.filter((g) => g.key in data.goals);
-    const two = goals.length > 1;
+    const several = goals.length > 1;
 
     renderKpis();
     renderStatus(data, goals);
@@ -329,7 +342,7 @@ function renderRanking(data) {
         head1 += `<th class="c grp sep" colspan="2">${g.title} (target ${pct(data.goals[g.key].target_pct / 100)})</th>`;
         head2 += `<th class="sep">Share of total</th><th>Cumulative</th>`;
     });
-    head1 += `${two ? '<th class="sep" rowspan="2">Combined score</th>' : ""}<th class="c sep" rowspan="2">Shortlist</th></tr>`;
+    head1 += `${several ? '<th class="sep" rowspan="2">Combined score</th>' : ""}<th class="c sep" rowspan="2">Shortlist</th></tr>`;
     head2 += "</tr>";
     $("rank-table").querySelector("thead").innerHTML = head1 + head2;
 
@@ -340,19 +353,20 @@ function renderRanking(data) {
             const share = a["share_" + g.column];
             cells += `<td class="sep">${pct(share)}<div class="bar"><span style="width:${Math.min(100, share * 100).toFixed(1)}%"></span></div></td><td>${pct(a["cumulative_" + g.column])}</td>`;
         });
-        if (two) cells += `<td class="sep"><b>${pct(a.score)}</b></td>`;
+        if (several) cells += `<td class="sep"><b>${pct(a.score)}</b></td>`;
         cells += `<td class="c sep">${a.shortlisted ? '<span class="tag">Shortlisted</span>' : ""}</td>`;
         return `<tr class="${a.shortlisted ? "short" : ""}">${cells}</tr>`;
     });
-    const span = goals.length * 2 + (two ? 1 : 0) + 1;
+    const span = goals.length * 2 + (several ? 1 : 0) + 1;
     data.unranked.forEach((a) => {
         const label = (a.total_duration || 0) === 0 ? "Already automated" : "No contribution to these goals";
         rows.push(`<tr class="auto"><td class="c">–</td><td class="l">${escapeHtml(a.activity)}</td><td>${executions(a)}</td><td>${num(a.total_duration || 0)}</td><td colspan="${span}" class="l sep"><span class="tag grey">${label}</span></td></tr>`);
     });
     $("rank-table").querySelector("tbody").innerHTML = rows.join("");
 
-    $("combo-note").textContent = two
-        ? "With two goals, both count equally. Activities are ranked by a combined score: the average of the activity’s estimated reductions for the two goals. Activities are shortlisted from the top until both targets are reached."
+    const all = goals.length === 2 ? "both" : "all";
+    $("combo-note").textContent = several
+        ? `With ${goals.length === 2 ? "two" : "three"} goals, ${all} count equally. Activities are ranked by a combined score: the average of the activity’s estimated reductions for the goals. Activities are shortlisted from the top until ${all} targets are reached.`
         : "";
     $("total-note").textContent = "total_duration" in metricTotals
         ? "Shares are taken from the total processing time you entered, which can exceed the sum of the activity times because of waiting."
@@ -407,6 +421,7 @@ $("add-row-btn").addEventListener("click", () => addManualRow());
 for (let i = 0; i < MANUAL_ROWS; i++) addManualRow();
 
 document.querySelectorAll("input[name=goal]").forEach((cb) => cb.addEventListener("change", handleGoalToggle));
-GOALS.forEach((g) => $("tgt-" + g.key).addEventListener("change", runRanking));
+GOALS.forEach((g) => $("tgt-" + g.key).addEventListener("input", markStale));
+$("rank-btn").addEventListener("click", runRanking);
 
 $("assess-btn").addEventListener("click", handleAssess);

@@ -12,7 +12,7 @@
 <body>
 <div class="wrap">
   <h1>PMM4RPAAI Activity Ranking</h1>
-  <p class="lede">Load your process data, set one or two goals, and see which activities would contribute most to them if automated. The shortlist is the set of top-ranked activities that reaches your targets. All times are in minutes.</p>
+  <p class="lede">Load your process data, set up to three goals, and see which activities would contribute most to them if automated. The shortlist is the set of top-ranked activities that reaches your targets. All times are in minutes.</p>
 
   <section class="panel" aria-labelledby="h-data">
     <h2 id="h-data"><span class="step">1</span>Process data</h2>
@@ -83,7 +83,7 @@
 
   <section class="panel" aria-labelledby="h-goals">
     <h2 id="h-goals"><span class="step">2</span>Goals</h2>
-    <p class="sub">Choose one or two things you want to reduce, and set a target for each.</p>
+    <p class="sub">Choose up to three things you want to reduce, set a target for each, then click Rank activities.</p>
     <div class="pills" role="group" aria-label="Goals" id="goal-pills">
       <label data-goal="reduce_total_duration"><input type="checkbox" name="goal" value="reduce_total_duration" checked><span>Processing time</span></label>
       <label data-goal="reduce_total_cost"><input type="checkbox" name="goal" value="reduce_total_cost"><span>Cost</span></label>
@@ -93,6 +93,10 @@
       <label class="f" id="tw-reduce_total_duration">Processing time target (%)<input type="number" id="tgt-reduce_total_duration" min="1" max="100" step="1" value="10"></label>
       <label class="f hidden" id="tw-reduce_total_cost">Cost target (%)<input type="number" id="tgt-reduce_total_cost" min="1" max="100" step="1" value="10"></label>
       <label class="f hidden" id="tw-reduce_rework_duration">Rework time target (%)<input type="number" id="tgt-reduce_rework_duration" min="1" max="100" step="1" value="10"></label>
+    </div>
+    <div class="row top-gap">
+      <button id="rank-btn" type="button" class="primary" disabled>Rank activities</button>
+      <span id="rank-hint" class="note inline" role="status">Load process data first.</span>
     </div>
     <div id="rank-error" class="error hidden" role="alert"></div>
   </section>
