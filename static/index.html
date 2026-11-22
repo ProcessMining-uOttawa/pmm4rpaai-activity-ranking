@@ -61,7 +61,7 @@
     </div>
 
     <div id="src-manual" class="source hidden">
-      <p class="sub">Type the total processing time of the process and the time of each activity, in minutes. Executions (how many times the activity was performed) is optional, but needed for bot execution time and number of bots.</p>
+      <p class="sub">Type the total processing time of the process and the time of each activity, in minutes. Executions (how many times the activity was performed) is optional.</p>
       <label class="f compact">Total processing time of the process (minutes)
         <input type="number" id="total-time" min="0" step="any">
       </label>
@@ -127,51 +127,9 @@
     </details>
   </section>
 
-  <section class="panel hidden" aria-labelledby="h-assess" id="assess-section">
-    <h2 id="h-assess"><span class="step">4</span>Assess the shortlisted activities</h2>
-    <p class="sub">Split each shortlisted activity into its tasks and give every task a value from 0 to 100
-        on each criterion: how much it stands in the way of automation (0 = no obstacle, 100 = complete obstacle).
-        Uncertain values take three estimates: optimistic, likely and pessimistic. Each result is calculated
-        for all three, giving the Low / Mid / High levels the simulation needs.</p>
-
-    <h3>Criterion weights</h3>
-    <p class="hint">The same six values drive three outputs. Each output has its own weights (in %, each
-        column summing to 100), because what blocks automation is not always what makes a bot fail or run slowly.</p>
-    <code class="formula">weighted barrier W = Σ weight × value
-automation feasibility = max(0, 100 − W_feasibility)
-bot failure rate = lowest + (highest − lowest) × W_failure ÷ 100
-bot time = task time × (lowest + (highest − lowest) × W_bot time ÷ 100)</code>
-    <div class="scroll">
-      <table id="weights-table">
-        <thead><tr><th class="l">Criterion</th><th class="l">0 means</th><th class="l">100 means</th><th>Feasibility weight (%)</th>
-            <th>Failure rate weight (%)</th><th>Bot time weight (%)</th></tr></thead>
-        <tbody></tbody>
-        <tfoot><tr><td colspan="3">Total</td><td id="weight-total-feasibility"></td>
-            <td id="weight-total-failure"></td><td id="weight-total-bot_time"></td></tr></tfoot>
-      </table>
-    </div>
-
-    <h3>Tasks</h3>
-    <div id="task-forms"></div>
-
-    <h3>Bot assumptions</h3>
-    <p class="hint">The failure rate and bot time ranges come from published measurements (source under
-        each group). Change them if you have better data for your process.</p>
-    <div id="params-form" class="params-grid"></div>
-
-    <button id="assess-btn" type="button" class="primary">Calculate</button>
-    <div id="assess-error" class="error hidden" role="alert"></div>
-
-    <div id="assess-results" class="hidden">
-      <h3>Assessment</h3>
-      <div id="assess-output"></div>
-      <a id="sim-export-link" class="btn primary" href="#">Download simulation inputs (JSON)</a>
-    </div>
-  </section>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-<script src="assessment.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

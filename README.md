@@ -2,8 +2,7 @@
 
 Load your process data, set up to three improvement goals, and see which activities
 would contribute most to those goals if they were automated. The shortlist is the set
-of top-ranked activities that reaches your targets. Shortlisted activities can then be
-assessed task by task with a questionnaire.
+of top-ranked activities that reaches your targets.
 
 Built for the uOttawa Process Mining lab's PMM4RPAAI methodology
 (`ProcessMining-uOttawa/PMM4RPAAI`). The computations are in Python; the page is a
@@ -37,10 +36,6 @@ The page loads its font from Google Fonts, so it looks slightly different offlin
    target reduction (%) for each, then click "Rank activities".
 3. **Ranked activities.** Activities are ranked and the top ones are shortlisted until
    every target is reached. "Export ranking (CSV)" saves the table.
-4. **Assess the shortlisted activities.** Split each shortlisted activity into tasks
-   and score them on six criteria to get automation feasibility, bot failure rate, bot
-   time and number of bots, with optimistic / likely / pessimistic estimates. The
-   result can be downloaded as simulation inputs for PMM4RPAAI-Sim.
 
 ## How the numbers are calculated
 
@@ -74,12 +69,11 @@ All times are in minutes.
 - `pmm4rpaai/eventlog/mining.py`: normalized rows -> per-activity metrics
 - `pmm4rpaai/eventlog/aggregated.py`: activity table CSV -> per-activity metrics
 - `pmm4rpaai/ranking/engine.py`: single-goal ranking and the combined ranking/shortlist
-- `pmm4rpaai/assessment/feasibility.py`: task questionnaire scoring
 - `pmm4rpaai/api/routes.py`: endpoints (`/api/preview`, `/api/upload`,
-  `/api/upload-activities`, `/api/manual-activities`, `/api/rank`, `/api/assess`,
-  `/api/export/<upload_id>`, `/api/sim-factors/<upload_id>`)
+  `/api/upload-activities`, `/api/manual-activities`, `/api/rank`,
+  `/api/export/<upload_id>`)
 - `static/`: the page (HTML, CSS, JavaScript; no build step) and the sample log
-- `tests/`: parser, mining, ranking and assessment tests, including a check against
+- `tests/`: parser, mining and ranking tests, including a check against
   the lab's own `activity_data.csv` and a characterization test of the single-goal
   ranking against previously generated output
 

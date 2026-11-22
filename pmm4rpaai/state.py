@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 class SessionState:
     activities: list[dict]
     last_ranking: dict | None = None
-    last_assessment: dict | None = None
     # metric column -> user-given process total (replaces the activity sum when ranking)
     metric_totals: dict[str, float] = field(default_factory=dict)
 

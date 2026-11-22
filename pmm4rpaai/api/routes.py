@@ -8,16 +8,6 @@ import uuid
 from flask import Blueprint, Response, jsonify, request
 from werkzeug.utils import secure_filename
 
-from pmm4rpaai.assessment.feasibility import (
-    DEFAULT_PARAMS,
-    DEFAULT_WEIGHTS,
-    ESTIMATES,
-    OUTPUTS,
-    QUESTION_KEYS,
-    QUESTIONS,
-    SCORED_KEYS,
-    assess_activity,
-)
 from pmm4rpaai.eventlog.parser import MAPPABLE_FIELDS, guess_mapping, parse_eventlog, read_columns
 from pmm4rpaai.eventlog.mining import aggregate_activities
 from pmm4rpaai.eventlog.aggregated import parse_aggregated_activities
@@ -151,8 +141,7 @@ def manual_activities():
             return jsonify({"error": f"Activity '{name}' is listed twice."}), 400
         if not isinstance(duration, (int, float)) or isinstance(duration, bool) or duration < 0:
             return jsonify({"error": f"Time for '{name}' must be a number of 0 or more."}), 400
-        # Optional: how many times the activity was performed in the period (needed for
-        # bot execution time and number of bots in the assessment step).
+        # Optional: how many times the activity was performed in the period.
         executions = row.get("executions")
         if executions is None:
             executions = 0
@@ -208,139 +197,6 @@ def rank():
     result = rank_combined(session.activities, goals, session.metric_totals)
     session.last_ranking = result
     return jsonify(result)
-
-
-@bp.get("/questions")
-def questions():
-    return jsonify({"questions": QUESTIONS, "default_params": DEFAULT_PARAMS, "default_weights": DEFAULT_WEIGHTS})
-
-
-def _number(value) -> bool:
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
-@bp.post("/assess")
-def assess():
-    """Scores candidate activities with the weighted questionnaire."""
-    body = request.get_json(silent=True) or {}
-    session = SESSIONS.get(body.get("upload_id"))
-    if session is None:
-        return jsonify({"error": "Unknown upload_id. Upload an event log first."}), 404
-
-    # One weight set per output: {feasibility | failure | bot_time: {criterion: %}}.
-    weights = body.get("weights") or {}
-    for output in OUTPUTS:
-        weight_set = weights.get(output) or {}
-        for key in QUESTION_KEYS:
-            if not _number(weight_set.get(key)) or weight_set[key] < 0:
-                return jsonify({"error": f"{output} weight for '{key}' must be a number of 0 or more."}), 400
-        if sum(weight_set[k] for k in QUESTION_KEYS) <= 0:
-            return jsonify({"error": f"At least one {output} weight must be greater than 0."}), 400
-
-    params = {**DEFAULT_PARAMS, **(body.get("params") or {})}
-    for key in DEFAULT_PARAMS:
-        if not _number(params[key]) or params[key] < 0:
-            return jsonify({"error": f"'{key}' must be a number of 0 or more."}), 400
-    for key in ("period_days", "bot_hours_per_day", "utilization"):
-        if params[key] <= 0:
-            return jsonify({"error": f"'{key}' must be greater than 0."}), 400
-    if params["failure_max_pct"] > 100:
-        return jsonify({"error": "Bot failure rate must be from 0 to 100%."}), 400
-    if params["failure_min_pct"] > params["failure_max_pct"]:
-        return jsonify({"error": "Lowest bot failure rate must not exceed the highest."}), 400
-    if params["bot_time_min_pct"] > params["bot_time_max_pct"]:
-        return jsonify({"error": "Lowest bot time % must not exceed the highest."}), 400
-
-    by_name = {a["activity"]: a for a in session.activities}
-    entries = body.get("assessments") or []
-    if not entries:
-        return jsonify({"error": "Answer the questionnaire for at least one activity."}), 400
-
-    results = []
-    for entry in entries:
-        name = entry.get("activity")
-        if name not in by_name:
-            return jsonify({"error": f"Unknown activity '{name}'."}), 400
-        tasks, error = _parse_tasks(name, entry.get("tasks") or [])
-        if error:
-            return jsonify({"error": error}), 400
-        results.append(assess_activity(by_name[name], tasks, weights, params))
-
-    warnings = []
-    for output in OUTPUTS:
-        weight_total = sum(weights[output][k] for k in QUESTION_KEYS)
-        if abs(weight_total - 100) > 0.01:
-            warnings.append(
-                f"The {output} weights add up to {weight_total:g}%, not 100%, so the weighted barrier "
-                "no longer runs from 0 to 100."
-            )
-
-    session.last_assessment = {"weights": weights, "params": params, "results": results}
-    return jsonify({"results": results, "params": params, "warnings": warnings})
-
-
-def _parse_tasks(activity: str, rows: list) -> tuple[list[dict], str | None]:
-    """Validates one activity's tasks; returns (tasks, error message or None)."""
-    if not rows:
-        return [], f"'{activity}': add at least one task."
-
-    tasks, seen = [], set()
-    for row in rows:
-        name = str(row.get("task") or "").strip()
-        where = f"'{activity}' / '{name}'"
-        if not name:
-            return [], f"'{activity}': every task needs a name."
-        if name in seen:
-            return [], f"'{activity}': task '{name}' is listed twice."
-        seen.add(name)
-
-        minutes = row.get("minutes")
-        if not _number(minutes) or minutes < 0:
-            return [], f"{where}: time must be a number of minutes, 0 or more."
-
-        answers = row.get("answers") or {}
-        if any(not _number(answers.get(k)) or not 0 <= answers[k] <= 100 for k in SCORED_KEYS):
-            return [], f"{where}: give every criterion a value from 0 to 100."
-
-        exception_pct = row.get("exception_pct") or {}
-        if any(not _number(exception_pct.get(e)) or not 0 <= exception_pct[e] <= 100 for e in ESTIMATES):
-            return [], f"{where}: enter exception % (0-100) for optimistic, likely and pessimistic."
-        if not exception_pct["low"] <= exception_pct["likely"] <= exception_pct["high"]:
-            return [], f"{where}: exception % must be optimistic <= likely <= pessimistic."
-
-
-        tasks.append({
-            "task": name,
-            "minutes": float(minutes),
-            "answers": {k: float(answers[k]) for k in SCORED_KEYS},
-            "exception_pct": {e: float(exception_pct[e]) for e in ESTIMATES},
-        })
-    return tasks, None
-
-
-@bp.get("/sim-factors/<upload_id>")
-def sim_factors(upload_id: str):
-    """Low / Mid / High levels per PMM4RPAAI-Sim factor, per assessed activity, as a JSON download."""
-    session = SESSIONS.get(upload_id)
-    if session is None:
-        return jsonify({"error": "Unknown upload_id."}), 404
-    if session.last_assessment is None:
-        return jsonify({"error": "Run the assessment first."}), 409
-
-    payload = {
-        "source": "PMM4RPAAI Activity Ranking - questionnaire assessment",
-        "time_unit": "seconds",
-        "activities": [
-            {"activity": r["activity"], "factors": r["sim_factors"]}
-            for r in session.last_assessment["results"]
-            if r["sim_factors"]
-        ],
-    }
-    return Response(
-        json.dumps(payload, indent=2),
-        mimetype="application/json",
-        headers={"Content-Disposition": "attachment; filename=simulation_factors.json"},
-    )
 
 
 @bp.get("/export/<upload_id>")

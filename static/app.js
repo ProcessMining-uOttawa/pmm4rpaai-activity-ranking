@@ -1,5 +1,4 @@
-// Steps 1-3: load process data, pick goals, show the combined ranking and shortlist.
-// Step 4 (assessment.js) uses the globals declared here.
+// Load process data, pick goals, show the combined ranking and shortlist.
 
 const GOALS = [
     { key: "reduce_total_duration", column: "total_duration", title: "Processing time", name: "processing time", unit: " min" },
@@ -12,7 +11,6 @@ const MAP_FIELDS = ["case_id", "activity", "start_time", "end_time", "duration",
 let uploadId = null;
 let activities = [];
 let metricTotals = {};
-let candidates = [];
 
 let source = "eventlog";
 let logFile = null;      // event log currently loaded
@@ -26,11 +24,6 @@ const $ = (id) => document.getElementById(id);
 function show(id) { $(id).classList.remove("hidden"); }
 function hide(id) { $(id).classList.add("hidden"); }
 
-// Used by assessment.js as well: plain number with up to two decimals.
-function fmt(v) {
-    if (typeof v === "number") return Number.isInteger(v) ? v : v.toFixed(2);
-    return v;
-}
 const num = (v, d = 1) => Number(v).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
 const pct = (v) => (v * 100).toFixed(1) + "%";
 
@@ -58,7 +51,6 @@ function clearData() {
     uploadId = null;
     activities = [];
     hide("results-section");
-    hide("assess-section");
     $("rank-btn").disabled = true;
     $("rank-hint").textContent = "Load process data first.";
 }
@@ -217,7 +209,6 @@ async function useActivities(data) {
     }
     // New data: any ranking on screen belongs to the previous data. Wait for the button.
     hide("results-section");
-    hide("assess-section");
     hide("rank-error");
     $("rank-btn").disabled = false;
     $("rank-hint").textContent = `${activities.length} activit${activities.length === 1 ? "y" : "ies"} loaded. Click Rank activities to see the ranking.`;
@@ -262,8 +253,7 @@ async function runRanking() {
     const goals = selectedGoalKeys().map((key) => ({ category: key, target_pct: parseFloat($("tgt-" + key).value) }));
     if (goals.some((g) => !(g.target_pct > 0 && g.target_pct <= 100))) {
         hide("results-section");
-        hide("assess-section");
-        showError("rank-error", "Give every selected goal a target above 0% and at most 100%.");
+            showError("rank-error", "Give every selected goal a target above 0% and at most 100%.");
         return;
     }
 
@@ -286,17 +276,6 @@ async function runRanking() {
     $("rank-hint").textContent = "";
     $("export-link").href = `/api/export/${uploadId}`;
     show("results-section");
-
-    // The shortlisted activities go on to the questionnaire. Rebuild it only when the
-    // shortlist changes, so answers already typed in are not lost on a target tweak.
-    const previous = JSON.stringify(candidates);
-    candidates = data.shortlist;
-    if (!candidates.length) {
-        hide("assess-section");
-    } else if (JSON.stringify(candidates) !== previous || $("assess-section").classList.contains("hidden")) {
-        hide("assess-results");
-        await buildQuestionnaire();
-    }
 }
 
 function renderKpis() {
@@ -319,7 +298,7 @@ function renderStatus(data, goals) {
     $("status").innerHTML = goals.map((g) => {
         const r = data.goals[g.key];
         if (r.total <= 0) {
-            return `<p class="status bad">The data contains no ${g.name} to reduce, so this goal can’t be assessed.</p>`;
+            return `<p class="status bad">The data contains no ${g.name} to reduce, so this goal can’t be evaluated.</p>`;
         }
         const amount = `${num(r.achieved_reduction, g.unit ? 1 : 0)}${g.unit}`;
         if (r.goal_met) {
@@ -424,4 +403,3 @@ document.querySelectorAll("input[name=goal]").forEach((cb) => cb.addEventListene
 GOALS.forEach((g) => $("tgt-" + g.key).addEventListener("input", markStale));
 $("rank-btn").addEventListener("click", runRanking);
 
-$("assess-btn").addEventListener("click", handleAssess);
